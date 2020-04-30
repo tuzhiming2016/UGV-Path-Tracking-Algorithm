@@ -17,7 +17,8 @@ function Outline = plot_car(VehicleParams, Vehicle_State, steer_state)
     Vehicle_front_right = CoG + tmp_Length_front.*[cos(yaw) sin(yaw)] + Width.*[cos(yaw-pi/2) sin(yaw-pi/2)];
     Vehicle_Outline=[Vehicle_rear_left;Vehicle_rear_right;Vehicle_front_right;Vehicle_front_left;Vehicle_rear_left;];
     Outline=line(Vehicle_Outline(:,1),Vehicle_Outline(:,2),'Color','black','LineWidth',1.5);
-    legend(Outline,{'Vehicle'});
+%     legend(Outline,{'Vehicle'});
+    
 %     Vehicle_rear_left = [tmp_Length_rear; Width];
 %     Vehicle_rear_right = [tmp_Length_rear; -Width];
 %     Vehicle_front_left = [tmp_Length_rear; Width];

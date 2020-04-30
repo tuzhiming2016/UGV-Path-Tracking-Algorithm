@@ -17,7 +17,7 @@ AlgParams.type = path_tracking_alg;
 time_step = AlgParams.ts;
 
 x0 = Reference.cx(100);y0 = Reference.cy(100);yaw0 = Reference.cyaw(100);s0 = Reference.s(100);
-delta0 = 0;v0 = 20;w0 = 0;error0=0;
+delta0 = 0;v0 = 20;w0 = 0;
 desired_velocity = 20;
 desired_angular_v = 0;
 
@@ -28,24 +28,24 @@ Control_State = delta0;
     VehicleParams, Vehicle_State, Control_State,simulation_time);
 set(groot, 'CurrentFigure', path_figure);
 preview_point_global = plot(x0,y0,'b*');
-isGoal = norm(Vehicle_State(1:2)-[Reference.cx(end),Reference.cy(end)])<1^2 && (Reference.s(end)-Vehicle_State(4))<1;
+isGoal = norm(Vehicle_State(1:2)-[Reference.cx(end),Reference.cy(end)])<1 && (Reference.s(end)-Vehicle_State(4))<1;
 disp([path_tracking_alg,' ',roadmap_name,' simulation start!']);
 
 log.i=i;log.time=simulation_time;
 log.X=x0;log.Y=y0;log.Yaw=yaw0;log.Odometry=s0;
 log.Vx=v0;log.Angular_V=w0;
 log.delta=delta0;
-log.error=error0;
+log.error=0;log.solvertime=0;
 
 while ~isGoal
     tic;
     i = i + 1;
     simulation_time = simulation_time + time_step;
+    tic;
     switch AlgParams.type
         case "Pure Pursuit"
             [steer_cmd,error,preview_point] = UGV_PP(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State);
             set(groot, 'CurrentFigure', path_figure);
-            set(preview_point_global,'XData',preview_point(1),'YData',preview_point(2));
         case "Stanley"
             [steer_cmd,error,front_point] = UGV_Stanley(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State);
             set(groot, 'CurrentFigure', path_figure);
@@ -57,6 +57,7 @@ while ~isGoal
             Control_State=[delta0,desired_velocity];
             [steer_cmd,error,MPCprediction,qptime] = UGV_Dynamics_MPC(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State);
     end
+    toc;
     if AlgParams.type == "Pure Pursuit" || AlgParams.type == "Stanley" || AlgParams.type == "Dynamics MPC"
         wheel_base = VehicleParams.wheel_base;t=time_step;delta=steer_cmd;
         x0=Vehicle_State(1);y0=Vehicle_State(2);yaw0=Vehicle_State(3);s0=Vehicle_State(4);v0=Vehicle_State(5);
@@ -65,14 +66,17 @@ while ~isGoal
         Vehicle_State(3)=wrapTo2Pi(Vehicle_State(3));
         log.i(end+1)=i;log.time(end+1)=simulation_time;
         log.X(end+1)=x1;log.Y(end+1)=y1;log.Yaw(end+1)=yaw1;log.Odometry(end+1)=s1;
-        log.Vx(end+1)=v1;log.Angular_V(end+1)=w1;log.delta(end+1)=delta;log.error(end+1)=error;
+        log.Vx(end+1)=v1;log.Angular_V(end+1)=w1;log.delta(end+1)=delta;
+        log.error(end+1)=error;log.solvertime=toc;
         set(groot,'CurrentFigure',path_figure);
+        delete(Outline);
         Outline = plot_car(VehicleParams, Vehicle_State, Control_State);
-        set(groot,'CurrentFigure',result_figure);
+        set(preview_point_global,'XData',preview_point(1,:),'YData',preview_point(2,:));
+%         set(groot,'CurrentFigure',result_figure);
         set(line1,'Xdata',log.time,'Ydata',log.delta/pi*180);
         set(line2,'Xdata',log.time,'Ydata',log.error);
-        pause(0.0001);
-        toc;
+        pause(0.01);
+
         
         
         
