@@ -3,9 +3,9 @@ clc;
 close all;
 addpath('Params','TargetCourse');
 
-Vehicle = "C-Class-Hatchback"; % B-Class-Hatchback C-Class-Hatchback
-path_tracking_alg = "Pure Pursuit"; % Pure Pursuit,Stanley,Kinematics MPC,Dynamics MPC
-roadmap_name = "eight";  % eight road double
+Vehicle = 'C-Class-Hatchback'; % B-Class-Hatchback C-Class-Hatchback
+path_tracking_alg = 'Pure Pursuit'; % Pure Pursuit,Stanley,Kinematics MPC,Dynamics MPC
+roadmap_name = 'eight';  % eight road double
 
 Reference = getTargetCourseParams(roadmap_name);
 Reference = splinfy(Reference);
@@ -24,10 +24,11 @@ desired_angular_v = 0;
 i = 0;simulation_time = 0;
 Vehicle_State = [x0,y0,yaw0,s0,v0,w0];
 Control_State = delta0;
-[path_figure,result_figure,Outline,ax1,ax2,line1,line2] = visualization(AlgParams, Reference,... 
+[path_figure,preview_point_global_line,result_figure,delta_line,error_line,solve_time_line]= Visualization_Init(AlgParams, Reference,... 
     VehicleParams, Vehicle_State, Control_State,simulation_time);
+
 set(groot, 'CurrentFigure', path_figure);
-preview_point_global = plot(x0,y0,'b*');
+
 isGoal = norm(Vehicle_State(1:2)-[Reference.cx(end),Reference.cy(end)])<1 && (Reference.s(end)-Vehicle_State(4))<1;
 disp([path_tracking_alg,' ',roadmap_name,' simulation start!']);
 
@@ -67,15 +68,18 @@ while ~isGoal
         log.i(end+1)=i;log.time(end+1)=simulation_time;
         log.X(end+1)=x1;log.Y(end+1)=y1;log.Yaw(end+1)=yaw1;log.Odometry(end+1)=s1;
         log.Vx(end+1)=v1;log.Angular_V(end+1)=w1;log.delta(end+1)=delta;
-        log.error(end+1)=error;log.solvertime=toc;
+        log.error(end+1)=error;log.solvertime(end+1)=toc;
+        
         set(groot,'CurrentFigure',path_figure);
-        delete(Outline);
-        Outline = plot_car(VehicleParams, Vehicle_State, Control_State);
-        set(preview_point_global,'XData',preview_point(1,:),'YData',preview_point(2,:));
-%         set(groot,'CurrentFigure',result_figure);
-        set(line1,'Xdata',log.time,'Ydata',log.delta/pi*180);
-        set(line2,'Xdata',log.time,'Ydata',log.error);
-        pause(0.01);
+        clc;
+        plot_car(VehicleParams, Vehicle_State, Control_State);
+        set(preview_point_global_line,'XData',preview_point(1,:),'YData',preview_point(2,:));
+        
+        set(groot,'CurrentFigure',result_figure);
+        set(delta_line,'Xdata',log.time,'Ydata',log.delta/pi*180);
+        set(error_line,'Xdata',log.time,'Ydata',log.error);
+        set(solve_time_line,'Xdata',log.time,'Ydata',log.solvertime);
+        pause(0.1);
 
         
         
