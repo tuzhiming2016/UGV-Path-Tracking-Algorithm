@@ -1,17 +1,33 @@
 function [steer_cmd,error,front_point] = UGV_Stanley(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State)
-    yaw = Vehicle_State(3);v = Vehicle_State(5);
+    x = Vehicle_State(1);y = Vehicle_State(2); yaw = Vehicle_State(3);
+    v = Vehicle_State(5);
     Vehicle_State_Front = Vehicle_State;
     Vehicle_State_Front(1:2) = Vehicle_State(1:2) + VehicleParams.wheel_base_front*[cos(yaw),sin(yaw)];
-    [front_axle_error, target_index] = calc_nearest_point(Reference, Vehicle_State_Front);
+    [error, ~] = calc_nearest_point(Reference, Vehicle_State);
+    [~, target_index] = calc_nearest_point(Reference, Vehicle_State_Front);
+    preview_dist = AlgParams.preview_dist;
+    cx = Reference.cx; cy = Reference.cy; cyaw=Reference.cyaw; ds=Reference.ds;
     
-    cyaw=Reference.cyaw;
+    last_search_index = min(target_index+2*preview_dist/ds, length(cx));
+    dist = sqrt((cx(target_index:last_search_index)-x).^2+(cy(target_index:last_search_index)-y).^2);
+    tmp_index = find((dist- preview_dist)>=0);
+    
+    if isempty(tmp_index)
+        preview_index = length(cx);
+    else
+        preview_index = target_index + tmp_index(1) - 1;
+    end
+
     k = AlgParams.k;
-    theta_p = cyaw(target_index);
+    theta_p = cyaw(preview_index);
     theta_e = wrapToPi(theta_p - yaw);
+    path_vector = [cos(theta_p+pi/2) sin(theta_p+pi/2)];
+    ref_point = [cx(preview_index) cy(preview_index)];
+    front_axle_error = dot(ref_point-[x,y],path_vector);
+    
     theta_d = atan2(k * front_axle_error, v);
     steer_cmd = theta_e + theta_d;
-    error = front_axle_error;
-    front_point = [Reference.cx(target_index),Reference.cy(target_index)];
+    front_point = [cx(preview_index),cy(preview_index)];
 
 %     min_preview_dist = AlgParams.min_preview_dist;
 %     max_preview_dist = AlgParams.max_preview_dist;

@@ -4,11 +4,11 @@ function [steer_cmd,error,preview_point_global] = UGV_PP(Reference,VehicleParams
     k = AlgParams.k;
     min_preview_dist = AlgParams.min_preview_dist;
     max_preview_dist = AlgParams.max_preview_dist;
-    Ts = AlgParams.ts;
+    Ts = AlgParams.ts;delta0 = Control_State(1);
     cx=Reference.cx;cy=Reference.cy;ds=Reference.ds;
     
     x = Vehicle_State(1);y = Vehicle_State(2);
-    yaw = Vehicle_State(3);v = Vehicle_State(5);delta0 = Control_State(1);
+    yaw = Vehicle_State(3);v = Vehicle_State(5);
     preview_dist = k * v;
     preview_dist = max(min_preview_dist, preview_dist);
     preview_dist = min(max_preview_dist, preview_dist);

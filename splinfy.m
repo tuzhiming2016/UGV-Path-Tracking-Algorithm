@@ -36,26 +36,26 @@ function Reference = splinfy(Reference)
     screen_width = screen_size(3);
     screen_height = screen_size(4);
     
-%     rshow=r;
-%     rshow(r>1000)=0;rshow(r<-1000)=0;
-%     figure('name','TargetCourse','Position',...
-%         [0 0 3/4*screen_width 3/4*screen_height]);
-%     subplot(1,2,1)
-%     plot(cx,cy,'b*',x,y,'r');
-%     title('Reference Course','FontSize',12,'FontWeight','bold');
-%     xlabel('X(m)');ylabel('Y(m)');
-%     subplot(3,2,2)
-%     plot(s,k,'r');
-%     title('Reference Curvature','FontSize',12,'FontWeight','bold');
-%     xlabel('S(m)');ylabel('Curvature(m^(-1))');
-%     subplot(3,2,4);
-%     plot(s,yaw,'b');
-%     title('Reference Yaw','FontSize',12,'FontWeight','bold');
-%     xlabel('S(m)');ylabel('Yaw(deg)');
-%     subplot(3,2,6);
-%     plot(s,rshow,'k');
-%     title('Reference Radius','FontSize',12,'FontWeight','bold');
-%     xlabel('S(m)');ylabel('R(m)');
+    rshow=r;
+    rshow(r>1000)=0;rshow(r<-1000)=0;
+    figure('name','TargetCourse','Position',...
+        [0 0 3/4*screen_width 3/4*screen_height]);
+    subplot(1,2,1)
+    plot(cx,cy,'b*',x,y,'r');
+    title('Reference Course','FontSize',12,'FontWeight','bold');
+    xlabel('X(m)');ylabel('Y(m)');
+    subplot(3,2,2)
+    plot(s,k,'r');
+    title('Reference Curvature','FontSize',12,'FontWeight','bold');
+    xlabel('S(m)');ylabel('Curvature(m^(-1))');
+    subplot(3,2,4);
+    plot(s,yaw,'b');
+    title('Reference Yaw','FontSize',12,'FontWeight','bold');
+    xlabel('S(m)');ylabel('Yaw(deg)');
+    subplot(3,2,6);
+    plot(s,rshow,'k');
+    title('Reference Radius','FontSize',12,'FontWeight','bold');
+    xlabel('S(m)');ylabel('R(m)');
     
     Reference.cx = x;
     Reference.cy = y;

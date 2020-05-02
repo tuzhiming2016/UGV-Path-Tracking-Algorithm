@@ -1,4 +1,4 @@
-function [steer_cmd,error,MPCprediction,qptime] = UGV_Dynamics_MPC(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State)
+function [steer_cmd,error,MPCprediction,update_state] = UGV_Dynamics_MPC(Reference,VehicleParams,AlgParams,Vehicle_State,Control_State)
     [error, target_index] = calc_nearest_point(Reference, Vehicle_State);
     cx=Reference.cx;cy=Reference.cy;cyaw=Reference.cyaw;ck=Reference.ck;
     vel_pose=Vehicle_State(1:3);
@@ -16,51 +16,46 @@ function [steer_cmd,error,MPCprediction,qptime] = UGV_Dynamics_MPC(Reference,Veh
     kesi0(2)=Longitudinal_V*sin(dyaw);
     kesi0(4)=Angular_V-desired_velocity*ck(target_index);
     [Ad,Bd,Cd]=getMatrices(AlgParams,Longitudinal_V,kesi0(4));
-    [qptime,solved_steer_angle]=solve_MPC(Ad,Bd,Cd,VehicleParams,AlgParams,kesi0,Control_State);
+    solved_steer_angle=solve_MPC(Ad,Bd,Cd,VehicleParams,AlgParams,kesi0,Control_State);
     solved_steer_angle=wrapToPi(solved_steer_angle);
     steer_cmd = solved_steer_angle(1);
-    MPCprediction = 1;
+    
+    x=Vehicle_State(1);y=Vehicle_State(2);yaw=Vehicle_State(3);
+    Vy=Vehicle_State(7);Wz=Angular_V;
+    x0=[0;Vy;0;Wz;];
+    
+    MPCout = predict_motion(AlgParams,Longitudinal_V,x0,solved_steer_angle);
+    update_state = MPCout(:,1);
+    Tsim = AlgParams.N;t = AlgParams.ts;
+    local_x = Longitudinal_V*t*(1:Tsim);
+    local_y = MPCout(1,:);
+    local_yaw = MPCout(3,:);
+    rotA = [cos(-yaw) sin(-yaw);-sin(-yaw) cos(-yaw);];
+    MPCprediction(1:2,:)=rotA*[local_x;local_y;]+repmat([x;y],1,Tsim);
+    MPCprediction(3,:)=wrapTo2Pi(local_yaw+yaw);
+
+    
 function proj_pose = calc_proj_pose(p0, p1, p2)
-    % 求点p0在点p1和点p2组成直线上的投影点坐标及航向
-
-    % 输出:
-    % proj_point : 投影点位姿[x, y, theta]
-
-    % 输入:
-    % p0    : point0点位姿[x0, y0, theta0]
-    % p1    : point0点位姿[x1, y1, theta1]
-    % p2    : point0点位姿[x2, y2, theta2]
-
     tol = 0.0001;
     proj_pose = [0, 0, 0];
-
     if abs(p2(1) - p1(1)) < tol
-        % p1和p2直线的斜率无穷大
-        x = p1(1);     %投影点x坐标为p1的x坐标
-        y = p0(2);     %投影点y坐标为p0的y坐标
-
+        x = p1(1);
+        y = p0(2);
     elseif abs(p2(2) - p1(2)) < tol
-        % p1和p2直线的斜率无穷大
-        x = p0(1);     %投影点x坐标为p1的x坐标
-        y = p1(2);     %投影点y坐标为p0的y坐标
-
+        x = p0(1);
+        y = p1(2);
     else
-        k1 = (p2(2) - p1(2)) / (p2(1) - p1(1)); %p1和p2的直线斜率
-        k2 = -1 / k1;   %p0和投影点的直线斜率? two perpendicular line mutiply is -1
-
+        k1 = (p2(2) - p1(2)) / (p2(1) - p1(1));
+        k2 = -1 / k1;
         x = (p0(2) - p1(2) + k1 * p1(1) - k2 * p0(1)) / (k1 - k2);
         y = p0(2) + k2 * (x - p0(1));
     end
-
     proj_pose(1) = x;
     proj_pose(2) = y;
-
-    dist = norm(p2(1:2) - p1(1:2));         %点p1到点p2的距离
-    dist2 = norm(p2(1:2) - proj_pose(1:2)); %投影点到点p2的距离
-
+    dist = norm(p2(1:2) - p1(1:2)); 
+    dist2 = norm(p2(1:2) - proj_pose(1:2)); 
     ratio = dist2 / dist;
     theta = ratio * p1(3) + (1 - ratio) * p2(3);
-
     proj_pose(3) = theta;
     
 function [Ad,Bd,Cd]=getMatrices(AlgParams,Vx,heading_error_rate)
@@ -71,7 +66,7 @@ function [Ad,Bd,Cd]=getMatrices(AlgParams,Vx,heading_error_rate)
     Bd=T*Bc;
     Cd=T*Cc*heading_error_rate;
     
-function [qptime,solved_steer_angle]=solve_MPC(Ad,Bd,Cd,VehicleParams,AlgParams,kesi0,Control_State)
+function solved_steer_angle=solve_MPC(Ad,Bd,Cd,VehicleParams,AlgParams,kesi0,Control_State)
     switch (AlgParams.solver)
         case "quadprog"
             N=AlgParams.N;Nx=AlgParams.Nx;Nu=AlgParams.Nu;
@@ -120,13 +115,37 @@ function [qptime,solved_steer_angle]=solve_MPC(Ad,Bd,Cd,VehicleParams,AlgParams,
             tic
             [x,~,exitflag,~]=quadprog(H,f,[],[],[],[],lb,ub,x0,options);
             if exitflag==1
-                qptime=toc;
                 solved_steer_angle=x;
             else
                 solved_steer_angle=last_steer*ones(N,1);
             end
     end
-            
+    
+function MPCprediction = predict_motion(AlgParams,Vx,x0,U)
+    A=AlgParams.matrix_A;
+    B=AlgParams.matrix_B;
+    A(2,2)=A(2,2)/Vx;A(2,4)=A(2,4)/Vx-Vx;
+    A(4,2)=A(4,2)/Vx;A(4,4)=A(4,4)/Vx;
+    Tsim=AlgParams.N;
+    Nx=AlgParams.Nx;Nu=AlgParams.Nu;T=AlgParams.ts;
+    A=T*A+eye(Nx);B=T*B;
+    Abar_cell=cell(Tsim,1);
+    Bbar_cell=cell(Tsim,Tsim);
+    for i=1:Tsim
+        Abar_cell{i,1}=A^i;
+        for j=1:Tsim
+            if i>=j
+                Bbar_cell{i,j}=A^(i-j)*B;
+            else
+                Bbar_cell{i,j}=zeros(Nx,Nu);
+            end
+        end
+    end
+    Abar=cell2mat(Abar_cell);
+    Bbar=cell2mat(Bbar_cell);
+    MPCprediction = Abar*x0+Bbar*U;
+    MPCprediction = reshape(MPCprediction,Nx,Tsim);
+    MPCprediction(3,:) = wrapTo2Pi(MPCprediction(3,:));
             
             
             
