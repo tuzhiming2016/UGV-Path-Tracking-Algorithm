@@ -6,9 +6,9 @@ addpath('Params','TargetCourse');
 %% Choose Vehicle Algrithm Course 
 Vehicle = 'C-Class-Hatchback'; 
 % B-Class-Hatchback C-Class-Hatchback
-path_tracking_alg = 'Kinematics MPC V Delta'; 
+path_tracking_alg = 'Kinematics MPC V W'; 
 % Pure Pursuit,Stanley,Kinematics MPC V Delta,Dynamics MPC,Kinematics MPC V W
-roadmap_name = 'eight';  
+roadmap_name = 'eight';
 % eight road double
 
 %% Get Params
@@ -22,7 +22,7 @@ AlgParams.type = path_tracking_alg;
 time_step = AlgParams.ts;
 
 %% Initialize State
-x0 = Reference.cx(100);y0 = Reference.cy(100);yaw0 = Reference.cyaw(100);s0 = Reference.s(100);
+x0 = Reference.cx(1000);y0 = Reference.cy(1000);yaw0 = Reference.cyaw(1000);s0 = Reference.s(1000);
 delta0 = 0;v0 = 20;w0 = 0;vy0=0;
 desired_velocity = 20;
 desired_angular_v = 0;

@@ -13,7 +13,7 @@ function AlgParams = getAlgParams(path_tracking_alg, VehicleParams)
     
         case {'Kinematics MPC V W','Kinematics MPC V Delta' }
             solver = "quadprog";
-            N = 10;
+            N = 50;
             Nx = 3;
             Nu = 2;
             q1=1;q2=1;q3=0.5;
@@ -38,7 +38,7 @@ function AlgParams = getAlgParams(path_tracking_alg, VehicleParams)
             lr = VehicleParams.wheel_base_rear;
             iz = VehicleParams.Izz; 
 
-            N = 10;
+            N = 50;
             Nx = 4;
             Nu = 1;
             q1=0.05;q2=0;q3=1;q4=0;

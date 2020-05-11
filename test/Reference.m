@@ -41,7 +41,7 @@ if course == "eight"
     theta1 = -pi/2:dtheta:-pi/2+2*pi-dtheta;
     x1 = R*cos(theta1);
     y1 = R+R*sin(theta1);
-    theta2 = pi/2:-dtheta:pi/2-2*pi;
+    theta2 = pi/2:-dtheta:pi/2-2*pi-dtheta;
     x2 = R*cos(theta2);
     y2 = -R+R*sin(theta2);
     cx = [x1,x2];
